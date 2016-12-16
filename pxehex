@@ -1,0 +1,162 @@
+#!/bin/bash
+#
+# Returns the PXE-friendly hex version of a valid IPv4 address or
+# a fully qualified domain name that can be resolved via its A
+# record in DNS.
+#
+# Note: requires the 'dig', 'seq',  and 'ipcalc' utilities for full
+#       functionality. There are a couple different ipcalc versions
+#       out there. Currently, we rely on the one distributed by Red
+#       Hat in the initscripts rpm.
+#
+# ======================================================================
+
+# name of script
+ME=$(basename $0)
+# we use dig when resolving hostnames
+DIG="dig"
+# use seq to generate number list for iteration
+SEQ="seq"
+# use ipcalc (from initscripts rpm) for network calculations
+IPCALC="ipcalc"
+# flag for printing all possible hex versions
+SHOWALL=0
+# flag for adding comments output
+COMMENTS=0
+
+
+# give a brief usage message if user passes no argument
+function usage {
+  local ARG=$1
+  local RETVAL=0
+  if test -n "$ARG"; then
+    if test "$ARG" -gt 0; then
+      RETVAL=$ARG
+    fi
+  fi
+  echo "Usage:"
+  echo "  $ME [-h]"
+  echo "  $ME [-a] [-v] FQDN"
+  echo "  $ME [-a] [-v] IPv4 address"
+  echo ""
+  echo "Returns PXE-friendly hex version of IP address suitable for"
+  echo "a filename in your TFTP server."
+  echo ""
+  echo "-a  returns all possible hex-based filenames for target address"
+  echo "-v  includes comments about address range suitable for filename"
+  echo ""
+  echo "PXELINUX will search for a list of filenames beginning with the"
+  echo "specific address and widening in scope by subtracting 4 fom the"
+  echo "current CIDR block: /32, then /28, /24, etc."
+  exit $RETVAL
+}
+
+while getopts ":hva" KEY; do
+  case "$KEY" in
+    h)
+      usage
+      ;;
+    a)
+      SHOWALL=1
+      ;;
+    v)
+      COMMENTS=1
+      ;;
+    *)
+      echo "ERROR: Unknown option: -$OPTARG" 1>&2
+      exit 1
+      ;;
+  esac
+done
+
+# verify we have the utilities we need to handle the options invoked
+if test $SHOWALL -gt 0; then
+  which $SEQ >/dev/null 2>&1
+  if test $? -ne 0; then
+    echo "$ME requires the '$SEQ' utility for this option." 2>&1
+    echo "Please install it or adjust your PATH variable accordingly." 2>&1
+    exit 1
+  fi
+fi
+if test $SHOWALL -gt 0 -a $COMMENTS -gt 0; then
+  which $IPCALC >/dev/null 2>&1
+  if test $? -ne 0; then
+    echo "$ME requires the '$IPCALC' utility for this option." 2>&1
+    echo "Please install it or adjust your PATH variable accordingly." 2>&1
+    exit 1
+  fi
+fi 
+
+shift $((OPTIND-1))
+
+# our target address or hostname
+TGT=$1
+# give a brief usage message if user passes no argument
+if test -z "$TGT"; then
+  usage 1
+fi
+
+# any script argument containing an alphabetic character will be
+# treated as a hostname (which can be resolved using dig); arguments
+# without letters are assumed to be IPv4 addresses.
+ALPHA=$(expr "$TGT" : '.*[[:alpha:]]')
+if test $ALPHA -gt 0; then
+  which $DIG >/dev/null 2>&1
+  if test $? -ne 0; then
+    echo "$ME requires the '$DIG' utility for this option." 2>&1
+    echo "Please install it or adjust your PATH variable accordingly." 2>&1
+    exit 1
+  fi
+  IP=$($DIG $TGT -t A +short)
+else
+  IP=$TGT
+fi
+
+# a valid IPv4 addr will contain exactly three dots
+DOTS=${IP//[^.]}
+NUMDOTS=${#DOTS}
+if test $NUMDOTS -ne 3; then
+  echo "Invalid hostname or IPv4 address. Exiting now." 2>&1
+  exit 1
+fi
+
+# turn IPv4 address into a space-separated set of numbers suitable
+# for looping in bash
+NUMLIST=$(echo $IP | sed 's/\./ /g')
+
+# use printf to get zero-padded hex value for each of the four
+# numbers in the IP address. tack each of those values onto
+# the HEX variable, which is ultimately what this script aims
+# to produce
+HEX=""
+for N in $NUMLIST; do
+  NEWHEX=$(printf '%02x' $N | tr a-f A-F)
+  HEX=${HEX}${NEWHEX}
+done
+
+# the length of HEX should be 8, but we'll let bash figure
+# it out anyway
+HEXLEN=${#HEX}
+
+if test $SHOWALL -gt 0; then
+  # drop one character from the hex filename at a time,
+  # recalculating the netmask and base network each time if
+  # the -v option was invoked.
+  for N in $($SEQ $HEXLEN -1 1); do
+    printf "%-${HEXLEN}s" ${HEX:0:$N}
+    if test $COMMENTS -gt 0; then
+      MASK=$(expr $N \* 4)
+      NW=$($IPCALC -s -n ${IP}/${MASK} | cut -d= -f2)
+      printf "  # %s/%s" $NW $MASK
+    fi
+    echo
+  done
+else
+  printf "%-${HEXLEN}s" $HEX
+  if test $COMMENTS -gt 0; then
+    printf "  # %s/%s" $IP 32
+  fi
+  echo
+fi
+
+### eof
