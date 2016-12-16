@@ -52,6 +52,54 @@ Finally, the `-a` option will produce all of the address-based filenames for whi
 0        # 0.0.0.0/4
 ```
 
+## Workflow
+
+### TFTP layout
+
+Here's a possible layout of a TFTP server's root directory. (This is from a CentOS system. Other distributions may have a root other than `/var/lib/tftpboot`.) The `images` directory contains kernels and ramdisks. The `pxelinux.cfg` directory contains the boot configuration files for PXELINUX.
+
+```nohighlight
+/var/lib/tftpboot
+├── images
+│   ├── centos
+│   │   ├── 6
+│   │   │   ├── i386
+│   │   │   └── x86_64
+│   │   └── 7
+│   │       └── x86_64
+│   ├── memtest
+│   └── ubuntu
+│       ├── trusty
+│       │   └── amd64
+│       └── xenial
+│           └── amd64
+└── pxelinux.cfg
+```
+
+### Single host file
+
+Let's say you want to provision a new CentOS 7 machine with an IPv4 address of 192.168.40.10.
+
+First, use the pxehex script to figure out the filename to use for your new host's address.
+
+```nohighlight
+[bash ~]$ pxehex 192.168.40.10
+C0A8280A
+```
+
+Then create a boot configuration file:
+
+  /var/lib/tftpboot/pxelinux.cfg/C0A8280A
+
+Here is a simple example; it merely boots to the CentOS GUI installer, using the repository mirror at Portland State University.
+
+```nohighlight
+KERNEL images/centos/7/x86_64/vmlinuz
+APPEND initrd=images/centos/7/x86_64/initrd.img inst.repo=http://mirrors.cat.pdx.edu/centos/7/os/x86_64/
+```
+
+At this point, if your DHCP server and TFTP server are configured correctly, you ought to be able to PXE boot your new host directly to the CentOS installer.
+
 ## Caveats
 
 I've only tested the script using `bash`. It may fail when run using other shells. It may rely on other command-line utilities, depending on the options you invoke:
