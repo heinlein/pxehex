@@ -8,7 +8,7 @@ The PXELINUX bootloader will look for a [succession of files](http://www.syslinu
 
 1. Client UUID (not always present)
 1. Client Ethernet MAC (prefixed by ARP type, typically `01`)
-1. IPv4 address in uppercase hexidecimal (on a widening scope)
+1. IPv4 address in uppercase hexadecimal (on a widening scope)
 1. A file named 'default'
 
 The part that usually trips me up is converting an IPv4 address to hex. So I hacked up the script in this repository to assist me.
