@@ -108,7 +108,7 @@ I've only tested the script using `bash`. It may fail when run using other shell
 * `seq` is required to use the `-a` option;
 * `ipcalc` is required to use the `-a` and `-v` options together.
 
-The script currently works only with the `ipcalc` found in the Red Hat `initscripts` package. A future version will work with the version installed on Ubuntu systems or via MacPorts.
+The script currently works with the `ipcalc` found in the Red Hat `initscripts` package and with Krischan Jodies' version installed on Debian-family systems for via MacPorts.
 
 <!-- vim: set filetype=markdown: -->
 
