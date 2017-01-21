@@ -19,11 +19,22 @@ DIG="dig"
 SEQ="seq"
 # use ipcalc (from initscripts rpm) for network calculations
 IPCALC="ipcalc"
+IPCVER="redhat"
 # flag for printing all possible hex versions
 SHOWALL=0
 # flag for adding comments output
 COMMENTS=0
 
+# see what version of ipcalc we're running; default (as set
+# earlier) is 'redhat'
+function ipcalc_version {
+  STR=$(ipcalc --help 2>&1 | grep '^IP Calculator')
+  if test -n "$STR"; then
+    # ok, we've got Krischan Jodies' ipcalc, found on
+    # debian-family systems as well as in MacPorts
+    IPCVER="krischan"
+  fi
+}
 
 # give a brief usage message if user passes no argument
 function usage {
@@ -85,6 +96,7 @@ if test $SHOWALL -gt 0 -a $COMMENTS -gt 0; then
     echo "Please install it or adjust your PATH variable accordingly." 2>&1
     exit 1
   fi
+  ipcalc_version
 fi 
 
 shift $((OPTIND-1))
@@ -146,8 +158,21 @@ if test $SHOWALL -gt 0; then
     printf "%-${HEXLEN}s" ${HEX:0:$N}
     if test $COMMENTS -gt 0; then
       MASK=$(expr $N \* 4)
-      NW=$($IPCALC -s -n ${IP}/${MASK} | cut -d= -f2)
-      printf "  # %s/%s" $NW $MASK
+      if test "$IPCVER" = 'redhat'; then
+        NW=$($IPCALC -s -n ${IP}/${MASK} | cut -d= -f2)
+        printf "  # %s/%s" $NW $MASK
+      else
+        # Krischan Jodies' version of ipcalc doesn't report a
+        # Network for a /32 address, so we have to print
+        # it manually
+        if test $MASK -eq 32; then
+          printf "  # %s/%s" $IP 32
+        else
+          NW=$(LC_ALL=C $IPCALC -n -b ${IP}/${MASK} |\
+               awk '/^Network:/ {print $2}')
+          printf "  # %s" $NW
+        fi
+      fi
     fi
     echo
   done
