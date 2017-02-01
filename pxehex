@@ -6,8 +6,8 @@
 #
 # Note: requires the 'dig', 'seq',  and 'ipcalc' utilities for full
 #       functionality. There are a couple different ipcalc versions
-#       out there. Currently, we rely on the one distributed by Red
-#       Hat in the initscripts rpm.
+#       out there. This script can use the Red Hat version or the
+#       Krischan Jodies version (Debian, MacPorts).
 #
 # ======================================================================
 
