@@ -146,7 +146,7 @@ NUMLIST=$(echo $IP | sed 's/\./ /g')
 # to produce
 HEX=""
 for N in $NUMLIST; do
-  NEWHEX=$(printf '%02x' $N | tr a-f A-F)
+  NEWHEX=$(printf '%02X' $N)
   HEX=${HEX}${NEWHEX}
 done
 
