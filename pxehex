@@ -119,7 +119,11 @@ if test $ALPHA -gt 0; then
     echo "Please install it or adjust your PATH variable accordingly." 2>&1
     exit 1
   fi
-  IP=$($DIG $TGT -t A +short)
+  # if $TGT is a CNAME, dig will return more than one line of
+  # results; only the last one will be the IPv4 address. if you're
+  # trying to do this for a host with multiple A records, well,
+  # you're in for some pain.
+  IP=$($DIG $TGT -t A +short | tail -n1)
 else
   IP=$TGT
 fi
