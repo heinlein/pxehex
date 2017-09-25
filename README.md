@@ -111,4 +111,3 @@ I've only tested the script using `bash`. It may fail when run using other shell
 The script currently works with the `ipcalc` found in the Red Hat `initscripts` package and with [Krischan Jodies' version](http://jodies.de/ipcalc) installed on Debian-family systems or via [MacPorts](https://www.macports.org).
 
 <!-- vim: set filetype=markdown: -->
-
